@@ -1,73 +1,76 @@
 package blake.mkoi.server;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Vector;
 
-public class Server {
+import blake.mkoi.server.crypto.Cipher;
+
+public class Server implements Runnable {
+	public static Charset charset = StandardCharsets.UTF_8;
+
 //	String adresServ;
-	int portServ;
-	ServerSocket socketServ;
-	Boolean serwerIsRunning = false;
-	
-	public Server(String adres, int port) {
-		serwerIsRunning = false;
+	private int portServ;
+	private String klucz;
+	private ServerSocket socketServ;
+	private Boolean serwerIsRunning = false;
+	private Vector<Obsluga> clients = new Vector<Obsluga>();
+	private Cipher cipher;
 
+	
+	public Server(String adres, int port, String klucz)  {
+		serwerIsRunning = false;
+		this.klucz = klucz;
+		
 		try {
 			socketServ = new ServerSocket(port);
 			serwerIsRunning = true;
+			cipher = new Cipher(klucz.getBytes(charset));
+			
 			System.out.println("Serwer stoi na "+socketServ.getInetAddress()+":"+socketServ.getLocalPort());
 		} catch (IOException e) {
 			System.out.println("Uruchomienie serwera niemożliwe.");
 			e.printStackTrace();
 		}
+	}
+	
+	// nasłuchuje połączeń i rozpoczyna obsługę zgłoszeń
+	@Override
+	public void run() {
+		Socket socketCl;
+		Obsluga clientService;
+
+		System.out.println("Serwer Runnable uruchomione.");
 		
-		if (serwerIsRunning) {
-			nasluchujPolaczen();
-		}
-	}
-	
-	private void nasluchujPolaczen() {
-		while(serwerIsRunning) {
+		while(true) {
 			try {
-				Socket socketCl = socketServ.accept();
+				socketCl = socketServ.accept();
+				clientService =  new Obsluga(socketCl, this, cipher);
+				addClientService(clientService);
+
 				System.out.println("Połączenie nawiązane z: "+socketCl.getInetAddress());
-				// przy tej konstrucji wywoływania obsługi zadań, można obsłużyć maksymalnie jednego klienta
-				// jakby tworzył nowy obiekt obsługi to nie powinno się blokować
-				obsluzZadanie(socketCl);
-			} catch (IOException e) {
-				e.printStackTrace();
+
+			} catch(IOException e) {
+				System.err.println("Błąd nawiązania połączenia z nowym klientem.");
 			}
-		}
+		}		
 	}
 	
-	private void obsluzZadanie(Socket socketCl) {
-		try {
-			BufferedReader inText = new BufferedReader(new InputStreamReader(socketCl.getInputStream()));
-			PrintWriter outText = new PrintWriter(socketCl.getOutputStream(), true);
-			
-			String response="";
-			while ((response = inText.readLine()) != null) {
-				// drugi argument = 2 sprawia, że max na 2 elementy będzie podzielone
-				
-				if(response!="bye") {
-					String[] polecenie = response.split(" ");
-					System.out.println(socketCl.getInetAddress()+": "+ response);
-					outText.println("Wydałeś polecenie: "+ response);
-				} else {
-					outText.println("No joł ziomeczek.");
-					inText.close();
-					outText.close();
-					socketCl.close();
-				}
-				
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+	private void addClientService(Obsluga clientService) throws IOException
+	{
+		clientService.init();
+		clients.addElement(clientService);
+		new Thread(clientService).start();
+		System.out.println("Add. " + clients.size());
 	}
+	
+	void removeClientService(Obsluga clientService)
+	{
+		clients.removeElement(clientService);
+		System.out.println("Klient usunięty. Liczba zalogowanych: " + clients.size());
+	}
+	
 }
