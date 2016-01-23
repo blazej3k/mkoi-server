@@ -8,7 +8,7 @@ public class AppS {
 		String klucz = "WlazlKotekNaPlot";
 
 		Server serwer = new Server(adres, port, klucz);
-		serwer.run();
+		new Thread(serwer).start();
 		
 		System.out.println("Ale jaja!");
 		

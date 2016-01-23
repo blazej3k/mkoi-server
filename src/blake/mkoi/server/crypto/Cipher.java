@@ -7,8 +7,6 @@ public class Cipher {
 	
 	public static Charset charset = StandardCharsets.UTF_8;
 	
-	private String text = "";
-	
 	private int w 			= 32; // bits - 4 B
 	private int wordB		= 4;
 	private int rounds 		= 20;
@@ -61,17 +59,14 @@ public class Cipher {
 			i = (i+1) % 44;
 			j = (j+1) % c;
 		}
-		
 	}
 	
+	//funkcja przyjmuje NA PEWNO 16 BAJTOWE próbki, tu nie odbywa się padding!
 	public byte[] Encrypt(byte[] plain) {
 		int t=0, u=0, x=0;
 		
-		String test = new String(plain, charset);
-		
-		System.out.println("Szyfruje se teksta: "+test);
-		byte[] bajtBufor = test.getBytes(charset);
-		System.out.println("Jego długość bajtowa: "+bajtBufor.length+ ", znakowa: "+test.length());
+		System.out.println("Szyfruje napis: "+new String(plain, charset));
+//		System.out.println("Jego długość bajtowa: "+plain.length+ ", znakowa: "+(new String(plain, charset).length()));
 		System.out.println();
 		
 		InicjujBufory(plain);
@@ -110,6 +105,7 @@ public class Cipher {
 	     return byteWynik;
 	}
 	
+	//funkcja przyjmuje NA PEWNO 16 BAJTOWE próbki, tu nie odbywa się padding!
 	public byte[] Decrypt(byte[] encrypted) {
 		int t=0, u=0, x=0;
 		InicjujBufory(encrypted);
@@ -153,8 +149,10 @@ public class Cipher {
 	
 	private void InicjujBufory(byte[] wejscie) {
 		int offset=0;
-		int[] temp = new int[wejscie.length/4];
-		
+		int[] temp;
+
+		temp = new int[wejscie.length/4];
+
 		for (int i=0; i<temp.length; i++) {
 			temp[i]=0;
 		}
@@ -175,7 +173,6 @@ public class Cipher {
 		D = temp[3];
 	}
 	
-	
 	private int rotL(int dane, int n) {
 		//32 to size inta
 		// mozna by w sumie przesuwac w prawo >>, ze znakiem, bez znaczenia bo i tak to co 'wciagam' z powrotem jest robione ta druga operacja
@@ -189,3 +186,13 @@ public class Cipher {
 		return wynik;
 	}
 }
+
+//// musi doprowadzić do rozmiaru 16
+//private byte[] dodajPadding(byte[] wejscie) {
+//	int pad_size = 16 - wejscie.length;
+//	
+//	byte[] noweWej = new byte[16];
+//    System.arraycopy(wejscie, 0, noweWej, pad_size, wejscie.length);
+//    System.out.println("nowewej dlugosc: "+noweWej.length);
+//    return noweWej;
+//}
